@@ -27,11 +27,29 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 	private JwtHelper jwtHelper;
 	@Autowired
 	private UserDetailsService userDetailsService;
+	
+	private static final String[] PUBLIC_URLS = {
+	        "/swagger-ui/",
+	        "/webjars/",
+	        "/swagger-resources/",
+	        "/v3/api-docs/",
+	        "/auth/generate-token",
+	        "/api/user"
+	    };
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
-
+		
+		// ✅ Skip JWT authentication for public URLs
+        String requestURI = request.getRequestURI();
+        for (String publicUrl : PUBLIC_URLS) {
+            if (requestURI.startsWith(publicUrl)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+	
 		String requestHeader = request.getHeader("Authorization");
 		logger.info("Header {} " + requestHeader);
 		String username = null;

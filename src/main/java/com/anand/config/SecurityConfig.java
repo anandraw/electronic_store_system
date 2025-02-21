@@ -26,34 +26,29 @@ public class SecurityConfig {
 	private JWTAuthenticationFilter filter;
 
 	 // Public URLs (no authentication required)
-    final String[] PUBLIC_URLS = { 
-        "/swagger-ui/**", 
-        "/webjars/**", 
-        "/swagger-resources/**", 
-        "/auth/generate-token" // Endpoint to generate JWT token
-    };
+	 private static final String[] PUBLIC_URLS = {
+		        "/swagger-ui/**",
+		        "/webjars/**",
+		        "/swagger-resources/**",
+		        "/v3/api-docs/**",  
+		        "/auth/generate-token",
+		        "/api/user"
+		    };
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity security) throws Exception {
 
-		security.cors(httpSecurityCorsConfigure -> httpSecurityCorsConfigure.disable());
+		security.cors(cors -> cors.disable()) // ⚠️ Consider enabling CORS if needed
+        .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless APIs
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers(PUBLIC_URLS).permitAll()  // ✅ Allow public endpoints
+            .anyRequest().authenticated()  // Require authentication for everything else
+        )
+        .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint)) // Handle unauthorized access
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session
+        .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class); // Add JWT filter
 
-		security.csrf(httpSecurityCsrfConfigure -> httpSecurityCsrfConfigure.disable());
-		
-		  // Configure authorization rules
-        security.authorizeHttpRequests(request -> request
-            .requestMatchers(PUBLIC_URLS).permitAll() // Public endpoints
-            .anyRequest().authenticated() // All other endpoints require authentication
-        );
-
-		// entry point
-		security.exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint));
-
-		// session creation policy
-		security.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-		// main -->
-		security.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class);
-		return security.build();
+    return security.build();
 
 	}
 
